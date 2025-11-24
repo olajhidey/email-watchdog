@@ -1,25 +1,32 @@
-# Start from the official Go image.
-FROM golang:1.22-alpine
+# Build stage
+FROM golang:1.25-alpine AS build
 
-# Set the current working directory inside the container.
+# Set environment variables for building
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+
+# Set working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum files to download dependencies.
-COPY go.mod ./
-COPY go.sum ./
+# Copy module files
+COPY go.mod go.sum ./
 
-# Download dependencies.
+# Download dependencies
 RUN go mod download
 
-# Copy the rest of the application source code.
+# Copy source code
 COPY . .
 
-# Build the Go application.
+# Build the binary
 RUN go build -o email-detector .
 
-# Expose the port your application listens on (if any).
-# For a command-line tool, this might not be necessary.
-# EXPOSE 8080 
+# Final stage
+FROM alpine:latest
 
-# Command to run the executable.
+# Set working directory
+WORKDIR /root/
+
+# Copy the binary from build stage
+COPY --from=build /app/email-detector .
+
+# Run the binary
 CMD ["./email-detector"]
