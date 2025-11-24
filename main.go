@@ -16,7 +16,7 @@ import (
 func main() {
 	// load .env file
 	if err := godotenv.Load(); err != nil {
-		log.Println("Error loading .env file: %v", err)
+		log.Printf("Error loading .env file: %v\n", err)
 	}
 
 	username := os.Getenv("GMAIL_USER")
