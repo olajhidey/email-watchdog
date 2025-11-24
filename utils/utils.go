@@ -1,12 +1,15 @@
 package utils
 
 import (
-
+	"context"
 	"log"
 	"os"
+	"time"
+
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/messaging"
 	"resty.dev/v3"
 )
-
 
 func ResponseTextFromAi(text string) string {
 	// Add your text simplification logic here
@@ -28,8 +31,8 @@ func ResponseTextFromAi(text string) string {
 }
 
 type AiRequest struct {
-	Model    string        `json:"model"`
-	Messages []AiMessage  `json:"messages"`
+	Model    string      `json:"model"`
+	Messages []AiMessage `json:"messages"`
 }
 
 type AiMessage struct {
@@ -41,7 +44,7 @@ type AiResponse struct {
 	Choices []struct {
 		Message AiMessage `json:"message"`
 	} `json:"choices"`
-}	
+}
 
 func CallAiAPI(prompt string) string {
 	url := os.Getenv("AI_URL")
@@ -49,7 +52,7 @@ func CallAiAPI(prompt string) string {
 	model := os.Getenv("AI_MODEL")
 	client := resty.New()
 	defer client.Close()
-	
+
 	var aiRequest AiRequest
 	aiRequest.Model = model
 	aiRequest.Messages = []AiMessage{
@@ -77,4 +80,66 @@ func CallAiAPI(prompt string) string {
 		log.Println("No choices returned in AI response")
 		return ""
 	}
+}
+
+type EmailSummary struct {
+	TimeDate string `json:"time_date"`
+	Summary  string `json:"summary"`
+}
+
+func getDateTime() string {
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("2006-01-02 15:04:05")
+	return formattedTime
+}
+
+func StoreResponseToDatabase(firebase *firebase.App, response string) error {
+	// Store response to firestore - Store current datetime and the response in the firestore db
+	ctx := context.Background()
+	client, err := firebase.Firestore(ctx)
+	if err != nil {
+		log.Fatalln("Error loading firestore")
+	}
+	defer client.Close()
+
+	_, _, err = client.Collection("emails_summaries").Add(ctx, EmailSummary{
+		TimeDate: getDateTime(),
+		Summary:  response,
+	})
+
+	if err != nil {
+		log.Printf("An error occured: %s", err)
+	}
+
+	return err
+}
+
+type NotificationBody struct {
+	Message string `json:"message"`
+}
+
+func SendNotification(firebase *firebase.App) {
+	ctx := context.Background()
+	client, err := firebase.Messaging(ctx)
+	if err != nil {
+		log.Fatalf("Error getting Messaging client: %v\n", err)
+	}
+
+	topic := "new_summary"
+	message := &messaging.Message{
+		Notification: &messaging.Notification{
+			Title: "👀📈 Watchdog Alert",
+			Body:  "New Email summary Alert from your Favourite Watchdog",
+		},
+		Topic: topic,
+	}
+
+	// Send the message
+	response, err := client.Send(ctx, message)
+	if err != nil {
+		log.Fatalf("error sending messaging: %v\n", err)
+	}
+
+	log.Printf("Successfully sent message: %s\n", response)
+
 }

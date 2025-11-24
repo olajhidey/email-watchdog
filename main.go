@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	firebase "firebase.google.com/go"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/mail"
@@ -18,6 +19,12 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Error loading .env file: %v\n", err)
 	}
+
+	firebaseApp, err := utils.LoadFirebaseConfig()
+	if err != nil {
+		log.Fatalf("Error loading Firebase config: %v", err)
+	}
+	log.Println("Firebase initialized successfully")
 
 	username := os.Getenv("GMAIL_USER")
 	password := os.Getenv("GMAIL_APP_PASSWORD")
@@ -72,7 +79,7 @@ func main() {
 				close(stop)
 				<-done // Wait for the IDLE command to finish
 
-				fetchNewEmails(c, newEmailSeqNum, targetEmail)
+				fetchNewEmails(c, newEmailSeqNum, targetEmail, firebaseApp)
 
 				// Restart IDLE with a new stop channel
 				stop = make(chan struct{})
@@ -90,7 +97,7 @@ func main() {
 	}
 }
 
-func fetchNewEmails(c *client.Client, seqNum uint32, targetEmail string) {
+func fetchNewEmails(c *client.Client, seqNum uint32, targetEmail string, firebase *firebase.App) {
 	if seqNum == 0 {
 		log.Println("Invalid sequence number for new email.")
 		return
@@ -127,11 +134,19 @@ func fetchNewEmails(c *client.Client, seqNum uint32, targetEmail string) {
 					log.Println("Server didn't return message body")
 					continue
 				}
-
 				bodyContent := parseMIME(r)
-
 				responseFromAi := utils.ResponseTextFromAi(bodyContent)
-				log.Println("Response from AI:", responseFromAi)
+				log.Println("AI summary successful")
+
+				// Implementation to send FCM notification
+				// utils.SendNotification(firebase)
+
+				// Store response from AI to cloud store or something
+				err := utils.StoreResponseToDatabase(firebase, responseFromAi)
+				if err != nil {
+					log.Println("Something went wrong: ", err)
+				}
+				log.Println("Database insertion successful")
 			}
 		case err := <-fetchDone:
 			if err != nil && err != io.EOF {
