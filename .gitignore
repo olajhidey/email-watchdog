@@ -1,0 +1,54 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Dependency directories
+vendor/
+Gopkg.lock
+Gopkg.toml
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Binaries
+out/
+
+# Go build cache
+.cache/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+*.env
+
+# Log files
+*.log
+logs/
+
+# Build output
+dist/
+bin/
+tmp/
