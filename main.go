@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	firebase "firebase.google.com/go"
 	"github.com/emersion/go-imap"
@@ -31,34 +32,40 @@ func main() {
 	targetEmail := os.Getenv("TARGET_EMAIL")
 	label := os.Getenv("GMAIL_LABEL")
 
+	for {
+		if err := listenForEmails(username, password, targetEmail, label, firebaseApp); err != nil {
+			log.Printf("IMAP connection failed: %v. Retrying in 30 seconds...\n", err)
+			time.Sleep(30 * time.Second)
+		}
+	}
+}
+
+func listenForEmails(username, password, targetEmail, label string, firebaseApp *firebase.App) error {
 	// Connect to Gmail
 	c, err := client.DialTLS("imap.gmail.com:993", nil)
 	if err != nil {
-		log.Fatalf("Error connecting to Gmail: %v", err)
+		return err
 	}
 	defer c.Logout()
 
 	// Login
 	if err := c.Login(username, password); err != nil {
-		log.Fatalf("Error logging in: %v", err)
+		return err
 	}
 
 	log.Println("Connected to Gmail successfully!")
 
-	// Further email processing logic would go here...
-	_, err = c.Select(label, false) // <-- Change "INBOX" to your desired label name
+	// Select mailbox
+	_, err = c.Select(label, false)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	log.Printf("Label %s selected. Waiting for emails from: %s\n", label, targetEmail)
 
 	updates := make(chan client.Update)
 	c.Updates = updates
 
-	// This channel is used to signal the IDLE command to stop
 	stop := make(chan struct{})
-
-	// This channel is used to get the error result from the IDLE command
 	done := make(chan error, 1)
 
 	go func() {
@@ -67,7 +74,6 @@ func main() {
 
 	// Start listening for new emails
 	for {
-		log.Println("Listening for new emails...")
 		select {
 		case update := <-updates:
 			if mboxUpdate, ok := update.(*client.MailboxUpdate); ok {
@@ -83,16 +89,17 @@ func main() {
 
 				// Restart IDLE with a new stop channel
 				stop = make(chan struct{})
+				done = make(chan error, 1)
 				go func() { done <- c.Idle(stop, nil) }()
 			}
 
 		case err := <-done:
-			// IDLE terminated unexpectedly
 			if err != nil {
-				log.Fatal(err)
+				log.Printf("IDLE terminated with error: %v\n", err)
+				return err // Return error to trigger reconnection
 			}
 			log.Println("IDLE finished")
-			return
+			return nil // Normal exit, but since it's infinite loop, this might not be reached
 		}
 	}
 }
