@@ -139,7 +139,7 @@ func fetchNewEmails(c *client.Client, seqNum uint32, targetEmail string, firebas
 				log.Println("AI summary successful")
 
 				// Implementation to send FCM notification
-				// utils.SendNotification(firebase)
+				utils.SendNotification(firebase)
 
 				// Store response from AI to cloud store or something
 				err := utils.StoreResponseToDatabase(firebase, responseFromAi)
