@@ -122,7 +122,7 @@ func SendNotification(firebase *firebase.App) {
 	ctx := context.Background()
 	client, err := firebase.Messaging(ctx)
 	if err != nil {
-		log.Fatalf("Error getting Messaging client: %v\n", err)
+		log.Printf("Error getting Messaging client: %v\n", err)
 	}
 
 	topic := "new_summary"
@@ -137,7 +137,7 @@ func SendNotification(firebase *firebase.App) {
 	// Send the message
 	response, err := client.Send(ctx, message)
 	if err != nil {
-		log.Fatalf("error sending messaging: %v\n", err)
+		log.Printf("error sending messaging: %v\n", err)
 	}
 
 	log.Printf("Successfully sent message: %s\n", response)
