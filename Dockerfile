@@ -16,6 +16,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# CRITICAL: Explicitly copy the credentials file
+COPY credentials.json /app/credentials.json
+
 # Build the binary
 RUN go build -o email-detector .
 
