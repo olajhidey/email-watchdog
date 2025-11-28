@@ -31,5 +31,11 @@ WORKDIR /root/
 # Copy the binary from build stage
 COPY --from=build /app/email-detector .
 
+# Copy the credentials from the build stage
+COPY --from=build /app/credentials.json .
+
+# Set the environment variable for Firebase to find the credentials
+ENV GOOGLE_APPLICATION_CREDENTIALS="/root/credentials.json"
+
 # Run the binary
 CMD ["./email-detector"]
