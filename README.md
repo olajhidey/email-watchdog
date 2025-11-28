@@ -34,6 +34,8 @@ This Go application acts as a real-time email monitoring service. It connects to
     - Navigate to Project Settings > Service accounts > Generate new private key.
     - Download the JSON file and rename it to `credentials.json`, placing it in the root directory of this project.
 
+    **Important**: Ensure that `credentials.json` is listed in your `.gitignore` file to prevent committing sensitive credentials to version control.
+
 3.  **Create the configuration file:**
     Copy the provided `.env.example` file to `.env` in the root of the project and fill in the required values for your environment. This file will store your secret credentials.
 
@@ -68,12 +70,19 @@ This Go application acts as a real-time email monitoring service. It connects to
     ```
 
 ## How to Run
+To run the application locally, you must first load the environment variables from your `.env` file and point the Firebase SDK to your credentials file.
 
-Execute the program from your terminal:
+1. **Export the environment variables:**
+   A common way to do this is to source the file if your shell supports it, or export them manually.
+   ```sh
+   export $(cat .env | xargs)
+   export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/credentials.json
+   ```
 
-```sh
-go run main.go
-```
+2. **Run the application:**
+   ```sh
+   go run main.go
+   ```
 
 The application will connect to Gmail and start listening. When a new email from your `TARGET_EMAIL` arrives in the specified `GMAIL_LABEL`, you will see log output in your terminal, followed by the AI-generated summary.
 
@@ -87,11 +96,11 @@ To run the application in a Docker container:
    ```
 
 2. **Run the container:**
+   The following command runs the container and injects the environment variables from your local `.env` file.
    ```sh
-   docker run --env-file .env email-detector
+   # The -p 8080:8080 flag is optional and maps the container's port to your local machine.
+   docker run --rm -p 8080:8080 --env-file .env email-detector
    ```
-
-This will start the application in a container, using the environment variables from your `.env` file.
 
 Note: Ensure Docker is installed and running on your system.
 
